@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FRUIT SHOOTER - Complete Edition</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a2215;
+            font-family: 'Courier New', Courier, monospace;
+            color: #f0ebd8;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #232d1d 0%, #1a2215 100%);
+        }
+        /* Screens UI Styling */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(26, 34, 21, 0.98);
+            padding: 15px;
+            z-index: 10;
+        }
+        .screen.hidden {
+            display: none;
+        }
+        .panel {
+            border: 3px solid #ff4500;
+            border-radius: 12px;
+            padding: 25px 20px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            background: #1d2618;
+            box-shadow: 0 0 20px rgba(255, 69, 0, 0.2);
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+        h1 {
+            color: #ff4500;
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+        h2 {
+            color: #f0ebd8;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+        p {
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            color: #c2b9a3;
+        }
+        .btn {
+            background: #ff4500;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn:active { background: #cc3700; }
+        .btn-alt { background: #3e4f35; font-size: 0.95rem; padding: 10px; }
+        .btn-alt:active { background: #2d3a27; }
+        .btn-danger { background: #d93838; }
+        .btn-danger:active { background: #b32d2d; }
+        
+        /* Inputs */
+        input[type="password"], input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            background: #2b3624;
+            border: 2px solid #3e4f35;
+            color: #f0ebd8;
+            font-family: inherit;
+            font-size: 1rem;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            text-align: center;
+            outline: none;
+        }
+        input:focus { border-color: #ff4500; }
+        
+        /* HUD layout */
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ff4500;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .stats-box {
+            background: rgba(29, 38, 24, 0.85);
+            border: 1px solid #ff4500;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+
+        /* Responsive Dashboard Panels */
+        .stat-card {
+            background: #232d1d;
+            border: 1px solid #3e4f35;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        .stat-label { font-size: 0.8rem; color: #8a9485; text-transform: uppercase; }
+        .stat-val { font-size: 1.4rem; color: #ff4500; font-weight: bold; margin-top: 2px; }
+        
+        /* Admin Scrollable Database Table */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            margin: 15px 0;
+            border: 1px solid #3e4f35;
+            border-radius: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+        th, td { padding: 10px; border-bottom: 1px solid #3e4f35; }
+        th { background: #232d1d; color: #8a9485; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Game HUD -->
+    <div id="hud">
+        <div class="stats-box">WAVE: <span id="hud-wave">1</span></div>
+        <div class="stats-box">SCORE: <span id="hud-score">0</span></div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Main Menu Screen -->
+    <div id="menu-screen" class="screen">
+        <div class="panel">
+            <h1>🍓 FRUIT SHOOTER 🍎</h1>
+            <p>Shoot the falling fruits before they hit the ground!</p>
+            <p style="font-size: 0.8rem; color: #8a9485; margin: 15px 0;">
+                🖱️ Click/Tap to Aim<br>
+                🎯 Continuous Shooting Mode
+            </p>
+            <button class="btn" onclick="startGame()">Start Game</button>
+            <button class="btn btn-alt" onclick="showScreen('admin-login-screen')">Leaderboard</button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen hidden">
+        <div class="panel" style="border-color: #d93838;">
+            <h1 style="color: #d93838;">GAME OVER</h1>
+            <div class="stat-card" style="text-align: center;">
+                <div class="stat-label">Final Score</div>
+                <div class="stat-val" id="final-score">0</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div class="stat-label">Fruits Destroyed</div>
+                <div class="stat-val" id="final-fruits" style="color: #f0ebd8;">0</div>
+            </div>
+            
+            <input type="text" id="player-name-input" placeholder="ENTER NAME" maxlength="15">
+            <button class="btn" onclick="submitScore()">Submit Score</button>
+            <button class="btn btn-alt" onclick="showScreen('menu-screen')">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Admin Login Screen -->
+    <div id="admin-login-screen" class="screen hidden">
+        <div class="panel">
+            <h2>LEADERBOARD</h2>
+            <p style="font-size: 0.9rem; margin: 15px 0;">Top Scores</p>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr><th>Rank</th><th>Player</th><th>Score</th></tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- Scores load dynamically here -->
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn btn-alt" onclick="showScreen('menu-screen')">Return to Menu</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Game Variables
+    let canvas = document.getElementById('gameCanvas');
+    let ctx = canvas.getContext('2d');
+    let gameRunning = false;
+    let score = 0;
+    let fruitsDestroyed = 0;
+    let wave = 1;
+    let gameSpeed = 2;
+    
+    // Resize canvas
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Fruits array
+    let fruits = [];
+    let bullets = [];
+    
+    // Fruit object
+    class Fruit {
+        constructor() {
+            this.x = Math.random() * (canvas.width - 40) + 20;
+            this.y = -30;
+            this.width = 30;
+            this.height = 30;
+            this.speed = gameSpeed + Math.random() * 2;
+            this.type = ['🍎', '🍊', '🍋', '🍌', '🍉', '🍓', '🫐'][Math.floor(Math.random() * 7)];
+        }
+        
+        update() {
+            this.y += this.speed;
+        }
+        
+        draw() {
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.type, this.x, this.y);
+        }
+        
+        isOffScreen() {
+            return this.y > canvas.height;
+        }
+    }
+    
+    // Bullet object
+    class Bullet {
+        constructor(x, y, targetX, targetY) {
+            this.x = x;
+            this.y = y;
+            this.radius = 5;
+            const angle = Math.atan2(targetY - y, targetX - x);
+            this.vx = Math.cos(angle) * 8;
+            this.vy = Math.sin(angle) * 8;
+        }
+        
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+        }
+        
+        draw() {
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        isOffScreen() {
+            return this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height;
+        }
+    }
+    
+    // Mouse/Touch aim
+    let mouseX = canvas.width / 2;
+    let mouseY = canvas.height / 2;
+    
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+    
+    document.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) {
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+        }
+    });
+    
+    // Shooting
+    let isShooting = false;
+    document.addEventListener('mousedown', () => { isShooting = true; });
+    document.addEventListener('mouseup', () => { isShooting = false; });
+    document.addEventListener('touchstart', () => { isShooting = true; });
+    document.addEventListener('touchend', () => { isShooting = false; });
+    
+    // Start game
+    function startGame() {
+        showScreen('menu-screen');
+        document.getElementById('hud').style.display = 'flex';
+        gameRunning = true;
+        score = 0;
+        fruitsDestroyed = 0;
+        wave = 1;
+        gameSpeed = 2;
+        fruits = [];
+        bullets = [];
+        gameLoop();
+    }
+    
+    // Game loop
+    function gameLoop() {
+        if (!gameRunning) return;
+        
+        // Clear canvas
+        ctx.fillStyle = 'rgba(35, 45, 29, 0.1)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Spawn fruits
+        if (Math.random() < 0.02 + wave * 0.005) {
+            fruits.push(new Fruit());
+        }
+        
+        // Update and draw fruits
+        for (let i = fruits.length - 1; i >= 0; i--) {
+            fruits[i].update();
+            fruits[i].draw();
+            
+            if (fruits[i].isOffScreen()) {
+                gameRunning = false;
+                endGame();
+                return;
+            }
+        }
+        
+        // Shoot bullets
+        if (isShooting) {
+            bullets.push(new Bullet(mouseX, mouseY, mouseX + 100, mouseY));
+        }
+        
+        // Update and draw bullets
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            bullets[i].update();
+            bullets[i].draw();
+            
+            if (bullets[i].isOffScreen()) {
+                bullets.splice(i, 1);
+            }
+        }
+        
+        // Collision detection
+        for (let i = fruits.length - 1; i >= 0; i--) {
+            for (let j = bullets.length - 1; j >= 0; j--) {
+                const dx = fruits[i].x - bullets[j].x;
+                const dy = fruits[i].y - bullets[j].y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < fruits[i].width) {
+                    score += 10;
+                    fruitsDestroyed++;
+                    fruits.splice(i, 1);
+                    bullets.splice(j, 1);
+                    break;
+                }
+            }
+        }
+        
+        // Wave progression
+        if (fruitsDestroyed > wave * 15) {
+            wave++;
+            gameSpeed += 0.5;
+        }
+        
+        // Update HUD
+        document.getElementById('hud-score').textContent = score;
+        document.getElementById('hud-wave').textContent = wave;
+        
+        // Draw crosshair
+        ctx.strokeStyle = '#ff4500';
+        ctx.beginPath();
+        ctx.arc(mouseX, mouseY, 15, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(mouseX - 20, mouseY);
+        ctx.lineTo(mouseX + 20, mouseY);
+        ctx.moveTo(mouseX, mouseY - 20);
+        ctx.lineTo(mouseX, mouseY + 20);
+        ctx.stroke();
+        
+        requestAnimationFrame(gameLoop);
+    }
+    
+    // End game
+    function endGame() {
+        document.getElementById('hud').style.display = 'none';
+        document.getElementById('final-score').textContent = score;
+        document.getElementById('final-fruits').textContent = fruitsDestroyed;
+        showScreen('gameover-screen');
+    }
+    
+    // UI Functions
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById(screenId).classList.remove('hidden');
+    }
+    
+    // Submit score
+    function submitScore() {
+        const playerName = document.getElementById('player-name-input').value.trim();
+        if (playerName === '') {
+            alert('Please enter your name!');
+            return;
+        }
+        
+        // Save to localStorage
+        let scores = JSON.parse(localStorage.getItem('fruitScores')) || [];
+        scores.push({
+            name: playerName,
+            score: score,
+            date: new Date().toLocaleDateString()
+        });
+        scores.sort((a, b) => b.score - a.score);
+        scores = scores.slice(0, 50); // Keep top 50
+        localStorage.setItem('fruitScores', JSON.stringify(scores));
+        
+        document.getElementById('player-name-input').value = '';
+        loadLeaderboard();
+        showScreen('admin-login-screen');
+    }
+    
+    // Load leaderboard
+    function loadLeaderboard() {
+        let scores = JSON.parse(localStorage.getItem('fruitScores')) || [];
+        let html = '';
+        scores.forEach((score, index) => {
+            html += `<tr><td>${index + 1}</td><td>${score.name}</td><td>${score.score}</td></tr>`;
+        });
+        document.getElementById('leaderboard-body').innerHTML = html || '<tr><td colspan="3">No scores yet. Play to be first!</td></tr>';
+    }
+    
+    // Initialize
+    loadLeaderboard();
+    showScreen('menu-screen');
+</script>
+
+</body>
+</html>
